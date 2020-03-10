@@ -260,14 +260,14 @@ class WalletManager:
         tx = await self.db.get_transaction(txid=txid)
         if not tx:
             try:
-                raw = await self.ledger.network.get_transaction(txid)
-                height = await self.ledger.network.get_transaction_height(txid)
+                raw, merkle = await self.ledger.network.get_transaction_and_merkle(txid)
+                height = merkle["block_height"]
             except CodeMessageError as e:
                 if 'No such mempool or blockchain transaction.' in e.message:
                     return {'success': False, 'code': 404, 'message': 'transaction not found'}
                 return {'success': False, 'code': e.code, 'message': e.message}
             tx = Transaction(unhexlify(raw))
-            await self.ledger.maybe_verify_transaction(tx, height)
+            await self.ledger.maybe_verify_transaction(tx, height, merkle)
         return tx
 
     async def create_purchase_transaction(
